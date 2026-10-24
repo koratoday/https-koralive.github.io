@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مباريات اليوم | نتائج مباشرة وجداول</title>
+<meta name="description" content="مباريات اليوم لحظة بلحظة: مواعيد، نتائج مباشرة، ترتيب الدوريات وأهم البطولات.">
+<script>const API_KEY = "942c2f40c799c5514caeb0210e0bb964";</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif}
+body{background:#0d1117;color:#e6edf3;min-height:100vh}
+header{background:#161b22;border-bottom:1px solid #30363d;padding:18px 20px;text-align:center}
+header h1{font-size:1.4rem;color:#58a6ff}
+.date{color:#8b949e;font-size:.9rem;margin-top:6px}
+.container{max-width:800px;margin:20px auto;padding:0 15px}
+.league{background:#161b22;border:1px solid #30363d;border-radius:12px;margin-bottom:16px;overflow:hidden}
+.league-title{background:#1c2128;padding:12px 16px;font-weight:bold;display:flex;align-items:center;gap:10px;color:#c9d1d9}
+.league-title img{width:24px;height:24px}
+.match{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-top:1px solid #21262d}
+.team{display:flex;align-items:center;gap:8px;flex:1}
+.team.away{flex-direction:row-reverse;text-align:left}
+.team img{width:28px;height:28px}
+.team span{font-size:.95rem}
+.score{text-align:center;min-width:70px;font-weight:bold;font-size:1.1rem}
+.score .live{color:#f85149;font-size:.75rem;animation:blink 1s infinite}
+.score .time{color:#8b949e;font-size:.8rem}
+@keyframes blink{50%{opacity:.3}}
+.status-finished{color:#8b949e}
+.loading,.error,.empty{text-align:center;padding:60px 20px;color:#8b949e}
+.error{color:#f85149}
+.setup{background:#161b22;border:1px dashed #f0b429;border-radius:12px;padding:25px;text-align:center;line-height:2}
+.setup code{background:#1c2128;padding:3px 8px;border-radius:6px;color:#f0b429}
+footer{text-align:center;color:#484f58;padding:25px;font-size:.8rem}
+</style>
+</head>
+<body>
+<header>
+<h1>⚽ مباريات اليوم</h1>
+<div class="date" id="todayDate"></div>
+</header>
+<div class="container" id="content">
+<div class="loading">⏳ جاري تحميل مباريات اليوم...</div>
+</div>
+<footer>البيانات عبر API-Sports — جميع المواعيد بتوقيت جهازك</footer>
+<script>
+document.getElementById('todayDate').textContent =
+new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+const container = document.getElementById('content');
+async function loadMatches(){
+try{
+const today = new Date().toISOString().slice(0,10);
+const res = await fetch(`https://v3.football.api-sports.io/fixtures?date=${today}&live=all`,{headers:{"x-apisports-key":API_KEY}});
+const data = await res.json();
+if(!data.response || data.response.length===0){
+container.innerHTML='<div class="empty">لا توجد مباريات اليوم 🌙<br>جرّب غدًا أو أضف بطولات أكثر من لوحة التحكم.</div>';return;}
+const byLeague = {};
+data.response.forEach(f=>{const key=f.league.id;
+if(!byLeague[key])byLeague[key]={name:f.league.name,logo:f.league.logo,matches:[]};
+byLeague[key].matches.push(f);});
+container.innerHTML='';
+Object.values(byLeague).forEach(lg=>{
+const box=document.createElement('div');box.className='league';
+box.innerHTML=`<div class="league-title"><img src="${lg.logo}" onerror="this.style.display='none'"> ${lg.name}</div>`;
+lg.matches.forEach(f=>{
+const live=['1H','2H','HT'].includes(f.fixture.status.short);
+const finished=f.fixture.status.short==='FT';
+const time=new Date(f.fixture.date).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+const goals=f.goals;
+const scoreText=(goals.home!==null)?`${goals.home} - ${goals.away}`:time;
+box.innerHTML+=`<div class="match">
+<div class="team"><img src="${f.teams.home.logo}" onerror="this.style.display='none'"><span>${f.teams.home.name}</span></div>
+<div class="score ${finished?'status-finished':''}">
+${live?'<div class="live">🔴 مباشر</div>':''}
+${scoreText}
+${live?`<div class="time">${f.fixture.status.elapsed}'</div>`:''}
+</div>
+<div class="team away"><img src="${f.teams.away.logo}" onerror="this.style.display='none'"><span>${f.teams.away.name}</span></div>
+</div>`;});
+container.appendChild(box);});
+}catch(e){container.innerHTML='<div class="error">حدث خطأ في الاتصال — تحقق من المفتاح أو حاول لاحقًا.</div>';}
+}
+loadMatches();
+setInterval(loadMatches,120000);
+</script>
+</body>
+</html>
