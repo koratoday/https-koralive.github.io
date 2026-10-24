@@ -3,33 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>مباريات اليوم | نتائج مباشرة وجداول</title>
-<meta name="description" content="مباريات اليوم لحظة بلحظة: مواعيد، نتائج مباشرة، ترتيب الدوريات وأهم البطولات.">
-<script>const API_KEY = "942c2f40c799c5514caeb0210e0bb964";</script>
+<title>مباريات اليوم | KoraToday — نتائج مباشرة ومواعيد</title>
+<meta name="description" content="مباريات اليوم لحظة بلحظة: مواعيد المباريات، نتائج مباشرة، وجداول أهم الدوريات الأوروبية والعربية.">
+<meta property="og:title" content="مباريات اليوم | KoraToday">
+<meta property="og:description" content="نتائج مباشرة ومواعيد مباريات اليوم في جميع الدوريات.">
+<meta property="og:type" content="website">
+<script>const API_KEY="942c2f40c799c5514caeb0210e0bb964";</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif}
 body{background:#0d1117;color:#e6edf3;min-height:100vh}
 header{background:#161b22;border-bottom:1px solid #30363d;padding:18px 20px;text-align:center}
 header h1{font-size:1.4rem;color:#58a6ff}
 .date{color:#8b949e;font-size:.9rem;margin-top:6px}
-.container{max-width:800px;margin:20px auto;padding:0 15px}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:14px 15px;max-width:800px;margin:0 auto;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.chip{background:#1c2128;border:1px solid #30363d;color:#c9d1d9;padding:7px 14px;border-radius:20px;font-size:.85rem;white-space:nowrap;cursor:pointer}
+.chip.active{background:#238636;border-color:#238636;color:#fff}
+.container{max-width:800px;margin:0 auto;padding:0 15px 20px}
 .league{background:#161b22;border:1px solid #30363d;border-radius:12px;margin-bottom:16px;overflow:hidden}
 .league-title{background:#1c2128;padding:12px 16px;font-weight:bold;display:flex;align-items:center;gap:10px;color:#c9d1d9}
 .league-title img{width:24px;height:24px}
 .match{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-top:1px solid #21262d}
-.team{display:flex;align-items:center;gap:8px;flex:1}
+.team{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.team span{font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.team img{width:26px;height:26px;flex-shrink:0}
 .team.away{flex-direction:row-reverse;text-align:left}
-.team img{width:28px;height:28px}
-.team span{font-size:.95rem}
-.score{text-align:center;min-width:70px;font-weight:bold;font-size:1.1rem}
-.score .live{color:#f85149;font-size:.75rem;animation:blink 1s infinite}
-.score .time{color:#8b949e;font-size:.8rem}
+.score{text-align:center;min-width:80px;font-weight:bold;font-size:1.05rem}
+.live{color:#f85149;font-size:.72rem;animation:blink 1s infinite}
 @keyframes blink{50%{opacity:.3}}
-.status-finished{color:#8b949e}
-.loading,.error,.empty{text-align:center;padding:60px 20px;color:#8b949e}
+.finished{color:#8b949e;font-weight:normal;font-size:.85rem}
+.status-ns{color:#8b949e;font-size:.8rem;font-weight:normal}
+.empty,.error{text-align:center;padding:60px 20px;color:#8b949e}
 .error{color:#f85149}
-.setup{background:#161b22;border:1px dashed #f0b429;border-radius:12px;padding:25px;text-align:center;line-height:2}
-.setup code{background:#1c2128;padding:3px 8px;border-radius:6px;color:#f0b429}
+.retry{margin-top:15px;background:#238636;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:.95rem;cursor:pointer}
+.loading{text-align:center;padding:60px 20px;color:#8b949e}
 footer{text-align:center;color:#484f58;padding:25px;font-size:.8rem}
 </style>
 </head>
@@ -38,49 +45,80 @@ footer{text-align:center;color:#484f58;padding:25px;font-size:.8rem}
 <h1>⚽ مباريات اليوم</h1>
 <div class="date" id="todayDate"></div>
 </header>
-<div class="container" id="content">
-<div class="loading">⏳ جاري تحميل مباريات اليوم...</div>
-</div>
-<footer>البيانات عبر API-Sports — جميع المواعيد بتوقيت جهازك</footer>
+<div class="filters" id="filters"></div>
+<div class="container" id="content"><div class="loading">⏳ جاري تحميل مباريات اليوم...</div></div>
+<footer>KoraToday — البيانات عبر API-Sports | جميع المواعيد بتوقيت جهازك</footer>
 <script>
 document.getElementById('todayDate').textContent =
 new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-const container = document.getElementById('content');
-async function loadMatches(){
-try{
-const today = new Date().toISOString().slice(0,10);
-const res = await fetch(`https://v3.football.api-sports.io/fixtures?date=${today}&live=all`,{headers:{"x-apisports-key":API_KEY}});
-const data = await res.json();
-if(!data.response || data.response.length===0){
-container.innerHTML='<div class="empty">لا توجد مباريات اليوم 🌙<br>جرّب غدًا أو أضف بطولات أكثر من لوحة التحكم.</div>';return;}
-const byLeague = {};
-data.response.forEach(f=>{const key=f.league.id;
-if(!byLeague[key])byLeague[key]={name:f.league.name,logo:f.league.logo,matches:[]};
-byLeague[key].matches.push(f);});
+const container=document.getElementById('content');
+const filtersEl=document.getElementById('filters');
+let allMatches=[],activeFilter='all';
+const TOP_LEAGUES={39:'الدوري الإنجليزي',140:'الدوري الإسباني',135:'الدوري الإيطالي',78:'الدوري الألماني',61:'الدوري الفرنسي',2:'دوري أبطال أوروبا',3:'الدوري الأوروبي',307:'دوري روشن السعودي',233:'الدوري المصري',848:'دوري أبطال إفريقيا',253:'دوري أبطال آسيا',1:'كأس العالم'};
+
+function statusInfo(f){
+const s=f.fixture.status.short;
+if(['1H','2H','HT','ET','BT','P'].includes(s))return{type:'live',label:'🔴 مباشر',extra:f.fixture.status.elapsed?"'":''};
+if(s==='FT')return{type:'finished',label:'انتهت',extra:''};
+if(s==='NS')return{type:'ns',label:new Date(f.fixture.date).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}),extra:''};
+return{type:'ns',label:f.fixture.status.long||s,extra:''};
+}
+
+function renderFilters(){
+const ids=[...new Set(allMatches.map(f=>f.league.id))].filter(id=>TOP_LEAGUES[id]);
+filtersEl.innerHTML='';
+const allChip=document.createElement('div');
+allChip.className='chip'+(activeFilter==='all'?' active':'');
+allChip.textContent='الكل ('+allMatches.length+')';
+allChip.onclick=()=>{activeFilter='all';renderAll();};
+filtersEl.appendChild(allChip);
+ids.forEach(id=>{
+const c=document.createElement('div');
+c.className='chip'+(activeFilter==id?' active':'');
+c.textContent=TOP_LEAGUES[id]+' ('+allMatches.filter(f=>f.league.id===id).length+')';
+c.onclick=()=>{activeFilter=id;renderAll();};
+filtersEl.appendChild(c);});
+}
+
+function renderAll(){
+renderFilters();
+const list=activeFilter==='all'?allMatches:allMatches.filter(f=>f.league.id===activeFilter);
+if(!list.length){container.innerHTML='<div class="empty">🌙 لا توجد مباريات هنا اليوم<br>جرّب فلترًا آخر أو عد غدًا.</div>';return;}
+const byLeague={};
+list.forEach(f=>{if(!byLeague[f.league.id])byLeague[f.league.id]={name:f.league.name,logo:f.league.logo,matches:[]};byLeague[f.league.id].matches.push(f);});
 container.innerHTML='';
 Object.values(byLeague).forEach(lg=>{
 const box=document.createElement('div');box.className='league';
-box.innerHTML=`<div class="league-title"><img src="${lg.logo}" onerror="this.style.display='none'"> ${lg.name}</div>`;
+box.innerHTML='<div class="league-title"><img src="'+lg.logo+'" onerror="this.style.display='none'"> '+lg.name+'</div>';
 lg.matches.forEach(f=>{
-const live=['1H','2H','HT'].includes(f.fixture.status.short);
-const finished=f.fixture.status.short==='FT';
-const time=new Date(f.fixture.date).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
-const goals=f.goals;
-const scoreText=(goals.home!==null)?`${goals.home} - ${goals.away}`:time;
-box.innerHTML+=`<div class="match">
-<div class="team"><img src="${f.teams.home.logo}" onerror="this.style.display='none'"><span>${f.teams.home.name}</span></div>
-<div class="score ${finished?'status-finished':''}">
-${live?'<div class="live">🔴 مباشر</div>':''}
-${scoreText}
-${live?`<div class="time">${f.fixture.status.elapsed}'</div>`:''}
-</div>
-<div class="team away"><img src="${f.teams.away.logo}" onerror="this.style.display='none'"><span>${f.teams.away.name}</span></div>
-</div>`;});
+const st=statusInfo(f);
+const score=(f.goals.home!==null&&f.goals.away!==null)?f.goals.home+' - '+f.goals.away:st.type==='ns'?st.label:'vs';
+box.innerHTML+='<div class="match">'
++'<div class="team"><img src="'+f.teams.home.logo+'" onerror="this.style.display='none'"><span>'+f.teams.home.name+'</span></div>'
++'<div class="score '+(st.type==='finished'?'finished':st.type==='ns'?'status-ns':'')+'">'
++(st.type==='live'?'<div class="live">'+st.label+'</div>':'')
++score
++(st.type==='live'?'<div class="status-ns">'+st.extra+'</div>':'')
++(st.type==='finished'?'<div class="status-ns">'+st.label+'</div>':'')
++'</div>'
++'<div class="team away"><img src="'+f.teams.away.logo+'" onerror="this.style.display='none'"><span>'+f.teams.away.name+'</span></div>'
++'</div>';});
 container.appendChild(box);});
-}catch(e){container.innerHTML='<div class="error">حدث خطأ في الاتصال — تحقق من المفتاح أو حاول لاحقًا.</div>';}
 }
+
+async function loadMatches(){
+try{
+const today=new Date().toISOString().slice(0,10);
+const res=await fetch('https://v3.football.api-sports.io/fixtures?date='+today,{headers:{'x-apisports-key':API_KEY}});
+const data=await res.json();
+if(!data.response){container.innerHTML='<div class="error">⚠️ خطأ في البيانات — تحقق من المفتاح</div>';return;}
+allMatches=data.response.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
+renderAll();
+}catch(e){
+container.innerHTML='<div class="error">حدث خطأ في الاتصال<br><button class="retry" onclick="loadMatches()">🔄 إعادة المحاولة</button></div>';
+}}
 loadMatches();
-setInterval(loadMatches,120000);
+setInterval(loadMatches,60000);
 </script>
 </body>
 </html>
