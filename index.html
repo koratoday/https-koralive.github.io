@@ -15,6 +15,9 @@ body{background:#0d1117;color:#e6edf3;min-height:100vh}
 header{background:#161b22;border-bottom:1px solid #30363d;padding:18px 20px;text-align:center}
 header h1{font-size:1.4rem;color:#58a6ff}
 .date{color:#8b949e;font-size:.9rem;margin-top:6px}
+nav{background:#161b22;padding:10px;text-align:center;border-bottom:1px solid #30363d}
+nav a{color:#8b949e;text-decoration:none;margin:0 12px;font-size:.9rem}
+nav a:hover{color:#58a6ff}
 .filters{display:flex;gap:8px;overflow-x:auto;padding:14px 15px;max-width:800px;margin:0 auto;scrollbar-width:none}
 .filters::-webkit-scrollbar{display:none}
 .chip{background:#1c2128;border:1px solid #30363d;color:#c9d1d9;padding:7px 14px;border-radius:20px;font-size:.85rem;white-space:nowrap;cursor:pointer}
@@ -38,6 +41,7 @@ header h1{font-size:1.4rem;color:#58a6ff}
 .retry{margin-top:15px;background:#238636;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:.95rem;cursor:pointer}
 .loading{text-align:center;padding:60px 20px;color:#8b949e}
 footer{text-align:center;color:#484f58;padding:25px;font-size:.8rem}
+footer a{color:#58a6ff;text-decoration:none}
 </style>
 </head>
 <body>
@@ -45,9 +49,18 @@ footer{text-align:center;color:#484f58;padding:25px;font-size:.8rem}
 <h1>⚽ مباريات اليوم</h1>
 <div class="date" id="todayDate"></div>
 </header>
+<nav>
+<a href="index.html">مباريات اليوم</a>
+<a href="about.html">من نحن</a>
+<a href="privacy.html">سياسة الخصوصية</a>
+<a href="contact.html">اتصل بنا</a>
+</nav>
 <div class="filters" id="filters"></div>
 <div class="container" id="content"><div class="loading">⏳ جاري تحميل مباريات اليوم...</div></div>
-<footer>KoraToday — البيانات عبر API-Sports | جميع المواعيد بتوقيت جهازك</footer>
+<footer>
+<div style="margin-bottom:8px"><a href="about.html">من نحن</a> · <a href="privacy.html">سياسة الخصوصية</a> · <a href="contact.html">اتصل بنا</a></div>
+<div>KoraToday © 2026 — البيانات عبر API-Sports</div>
+</footer>
 <script>
 document.getElementById('todayDate').textContent =
 new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
