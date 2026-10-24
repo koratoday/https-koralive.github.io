@@ -89,19 +89,19 @@ list.forEach(f=>{if(!byLeague[f.league.id])byLeague[f.league.id]={name:f.league.
 container.innerHTML='';
 Object.values(byLeague).forEach(lg=>{
 const box=document.createElement('div');box.className='league';
-box.innerHTML='<div class="league-title"><img src="'+lg.logo+'" onerror="this.style.display='none'"> '+lg.name+'</div>';
+box.innerHTML='<div class="league-title"><img src="'+lg.logo+'" onerror="this.style.display=\'none\'"> '+lg.name+'</div>';
 lg.matches.forEach(f=>{
 const st=statusInfo(f);
 const score=(f.goals.home!==null&&f.goals.away!==null)?f.goals.home+' - '+f.goals.away:st.type==='ns'?st.label:'vs';
 box.innerHTML+='<div class="match">'
-+'<div class="team"><img src="'+f.teams.home.logo+'" onerror="this.style.display='none'"><span>'+f.teams.home.name+'</span></div>'
++'<div class="team"><img src="'+f.teams.home.logo+'" onerror="this.style.display=\'none\'"><span>'+f.teams.home.name+'</span></div>'
 +'<div class="score '+(st.type==='finished'?'finished':st.type==='ns'?'status-ns':'')+'">'
 +(st.type==='live'?'<div class="live">'+st.label+'</div>':'')
 +score
 +(st.type==='live'?'<div class="status-ns">'+st.extra+'</div>':'')
 +(st.type==='finished'?'<div class="status-ns">'+st.label+'</div>':'')
 +'</div>'
-+'<div class="team away"><img src="'+f.teams.away.logo+'" onerror="this.style.display='none'"><span>'+f.teams.away.name+'</span></div>'
++'<div class="team away"><img src="'+f.teams.away.logo+'" onerror="this.style.display=\'none\'"><span>'+f.teams.away.name+'</span></div>'
 +'</div>';});
 container.appendChild(box);});
 }
