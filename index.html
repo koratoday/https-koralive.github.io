@@ -39,6 +39,7 @@ nav a:hover{color:#58a6ff}
 .empty,.error{text-align:center;padding:60px 20px;color:#8b949e}
 .error{color:#f85149}
 .retry{margin-top:15px;background:#238636;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:.95rem;cursor:pointer}
+.more-btn{display:block;margin:5px auto 20px;background:#1c2128;border:1px solid #30363d;color:#58a6ff;padding:11px 30px;border-radius:8px;font-size:.95rem;cursor:pointer}
 .loading{text-align:center;padding:60px 20px;color:#8b949e}
 footer{text-align:center;color:#484f58;padding:25px;font-size:.8rem}
 footer a{color:#58a6ff;text-decoration:none}
@@ -66,7 +67,8 @@ document.getElementById('todayDate').textContent =
 new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 const container=document.getElementById('content');
 const filtersEl=document.getElementById('filters');
-let allMatches=[],activeFilter='all';
+let allMatches=[],activeFilter='top',shownCount=0;
+const PAGE=60;
 const TOP_LEAGUES={39:'الدوري الإنجليزي',140:'الدوري الإسباني',135:'الدوري الإيطالي',78:'الدوري الألماني',61:'الدوري الفرنسي',2:'دوري أبطال أوروبا',3:'الدوري الأوروبي',307:'دوري روشن السعودي',233:'الدوري المصري',848:'دوري أبطال إفريقيا',253:'دوري أبطال آسيا',1:'كأس العالم'};
 
 function statusInfo(f){
@@ -77,61 +79,88 @@ if(s==='NS')return{type:'ns',label:new Date(f.fixture.date).toLocaleTimeString('
 return{type:'ns',label:f.fixture.status.long||s,extra:''};
 }
 
+function currentList(){
+if(activeFilter==='top')return allMatches.filter(f=>TOP_LEAGUES[f.league.id]);
+if(activeFilter==='all')return allMatches;
+return allMatches.filter(f=>f.league.id===activeFilter);
+}
+
 function renderFilters(){
-const ids=[...new Set(allMatches.map(f=>f.league.id))].filter(id=>TOP_LEAGUES[id]);
+const topCount=allMatches.filter(f=>TOP_LEAGUES[f.league.id]).length;
 filtersEl.innerHTML='';
-const allChip=document.createElement('div');
-allChip.className='chip'+(activeFilter==='all'?' active':'');
-allChip.textContent='الكل ('+allMatches.length+')';
-allChip.onclick=()=>{activeFilter='all';renderAll();};
-filtersEl.appendChild(allChip);
+[['top','الأهم ('+topCount+')'],['all','الكل ('+allMatches.length+')']].forEach(pair=>{
+const c=document.createElement('div');
+c.className='chip'+(activeFilter===pair[0]?' active':'');
+c.textContent=pair[1];
+c.onclick=()=>{activeFilter=pair[0];shownCount=0;renderAll();};
+filtersEl.appendChild(c);});
+const ids=[...new Set(allMatches.map(f=>f.league.id))].filter(id=>TOP_LEAGUES[id]);
 ids.forEach(id=>{
 const c=document.createElement('div');
-c.className='chip'+(activeFilter==id?' active':'');
+c.className='chip'+(activeFilter===id?' active':'');
 c.textContent=TOP_LEAGUES[id]+' ('+allMatches.filter(f=>f.league.id===id).length+')';
-c.onclick=()=>{activeFilter=id;renderAll();};
+c.onclick=()=>{activeFilter=id;shownCount=0;renderAll();};
 filtersEl.appendChild(c);});
 }
 
-function renderAll(){
-renderFilters();
-const list=activeFilter==='all'?allMatches:allMatches.filter(f=>f.league.id===activeFilter);
-if(!list.length){container.innerHTML='<div class="empty">🌙 لا توجد مباريات هنا اليوم<br>جرّب فلترًا آخر أو عد غدًا.</div>';return;}
-const byLeague={};
-list.forEach(f=>{if(!byLeague[f.league.id])byLeague[f.league.id]={name:f.league.name,logo:f.league.logo,matches:[]};byLeague[f.league.id].matches.push(f);});
-container.innerHTML='';
-Object.values(byLeague).forEach(lg=>{
-const box=document.createElement('div');box.className='league';
-box.innerHTML='<div class="league-title"><img src="'+lg.logo+'" onerror="this.style.display=\'none\'"> '+lg.name+'</div>';
-lg.matches.forEach(f=>{
+function matchHTML(f){
 const st=statusInfo(f);
 const score=(f.goals.home!==null&&f.goals.away!==null)?f.goals.home+' - '+f.goals.away:st.type==='ns'?st.label:'vs';
-box.innerHTML+='<div class="match">'
-+'<div class="team"><img src="'+f.teams.home.logo+'" onerror="this.style.display=\'none\'"><span>'+f.teams.home.name+'</span></div>'
+return '<div class="match">'
++'<div class="team"><img loading="lazy" decoding="async" src="'+f.teams.home.logo+'" onerror="this.style.display=\'none\'"><span>'+f.teams.home.name+'</span></div>'
 +'<div class="score '+(st.type==='finished'?'finished':st.type==='ns'?'status-ns':'')+'">'
 +(st.type==='live'?'<div class="live">'+st.label+'</div>':'')
 +score
 +(st.type==='live'?'<div class="status-ns">'+st.extra+'</div>':'')
 +(st.type==='finished'?'<div class="status-ns">'+st.label+'</div>':'')
 +'</div>'
-+'<div class="team away"><img src="'+f.teams.away.logo+'" onerror="this.style.display=\'none\'"><span>'+f.teams.away.name+'</span></div>'
-+'</div>';});
-container.appendChild(box);});
++'<div class="team away"><img loading="lazy" decoding="async" src="'+f.teams.away.logo+'" onerror="this.style.display=\'none\'"><span>'+f.teams.away.name+'</span></div>'
++'</div>';
 }
 
+function renderAll(append){
+renderFilters();
+const list=currentList();
+if(!list.length){container.innerHTML='<div class="empty">🌙 لا توجد مباريات هنا اليوم<br>جرّب فلترًا آخر أو عد غدًا.</div>';return;}
+const from=append?shownCount:0;
+const to=Math.min(from+PAGE,list.length);
+const slice=list.slice(from,to);
+shownCount=to;
+if(!append)container.innerHTML='';
+const byLeague={};
+slice.forEach(f=>{if(!byLeague[f.league.id])byLeague[f.league.id]={name:f.league.name,logo:f.league.logo,matches:[]};byLeague[f.league.id].matches.push(f);});
+Object.values(byLeague).forEach(lg=>{
+const box=document.createElement('div');box.className='league';
+box.innerHTML='<div class="league-title"><img loading="lazy" src="'+lg.logo+'" onerror="this.style.display=\'none\'"> '+lg.name+'</div>';
+lg.matches.forEach(f=>{box.innerHTML+=matchHTML(f);});
+container.appendChild(box);});
+const oldBtn=document.getElementById('moreBtn');
+if(oldBtn)oldBtn.remove();
+if(shownCount<list.length){
+const btn=document.createElement('button');
+btn.id='moreBtn';btn.className='more-btn';
+btn.textContent='عرض المزيد ('+(list.length-shownCount)+' مباراة)';
+btn.onclick=()=>renderAll(true);
+container.appendChild(btn);}
+}
+
+let lastData='';
 async function loadMatches(){
 try{
 const today=new Date().toISOString().slice(0,10);
 const res=await fetch('https://v3.football.api-sports.io/fixtures?date='+today,{headers:{'x-apisports-key':API_KEY}});
 const data=await res.json();
 if(!data.response){container.innerHTML='<div class="error">⚠️ خطأ في البيانات — تحقق من المفتاح</div>';return;}
-allMatches=data.response.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
-renderAll();
+const sorted=data.response.sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
+const signature=JSON.stringify(sorted.map(f=>[f.fixture.id,f.goals.home,f.goals.away,f.fixture.status.short]));
+if(signature===lastData)return;
+lastData=signature;
+allMatches=sorted;shownCount=0;renderAll(false);
 }catch(e){
-container.innerHTML='<div class="error">حدث خطأ في الاتصال<br><button class="retry" onclick="loadMatches()">🔄 إعادة المحاولة</button></div>';
+if(!allMatches.length)container.innerHTML='<div class="error">حدث خطأ في الاتصال<br><button class="retry" onclick="loadMatches()">🔄 إعادة المحاولة</button></div>';
 }}
 loadMatches();
-setInterval(loadMatches,60000);
+setInterval(()=>{if(!document.hidden)loadMatches();},60000);
 </script>
 </body>
 </html>
